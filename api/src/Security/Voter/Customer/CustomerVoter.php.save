@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Security\Voter\Customer;
+
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Paginator;
+use App\Entity\AbstractEntity;
+use App\Entity\Customer\Customer;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+class CustomerVoter extends Voter
+{
+    protected function supports(string $attribute, $subject): bool
+    {
+
+        $supportsAttribute = in_array($attribute, [
+                Customer::PERMISSION_ . AbstractEntity::PERMISSION_CREATE,
+                Customer::PERMISSION_ . AbstractEntity::PERMISSION_READ,
+                Customer::PERMISSION_ . AbstractEntity::PERMISSION_UPDATE,
+                Customer::PERMISSION_ . AbstractEntity::PERMISSION_DELETE,
+                Customer::PERMISSION_ . AbstractEntity::PERMISSION_COLLECTION_ . AbstractEntity::PERMISSION_READ,
+            ]
+        );
+//        dd($attribute);
+        $supportsSubject = $subject instanceof Customer;
+        $supportsPaginator = $subject instanceof Paginator;
+
+        return $supportsAttribute && ($supportsSubject || $supportsPaginator);
+    }
+
+    protected function voteOnAttribute(string $attribute, $subject, TokenInterface $token): bool
+    {
+        /** @var Customer $subject */
+        $user = $token->getUser();
+
+        // if the user is anonymous, do not grant access
+        if (!$user instanceof UserInterface) {
+            return false;
+        }
+
+        if($subject instanceof Paginator) {
+            return true;
+        }
+
+        $role = get_class($subject) . '_' . $subject->getId() . '_' . str_replace(Customer::PERMISSION_, null, $attribute);
+//        dd($attribute);
+        if(in_array($role, $token->getRoleNames()))
+        {
+            return true;
+        }
+
+        return false;
+    }
+}

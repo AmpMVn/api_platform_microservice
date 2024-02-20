@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Security\Voter\Customer;
+
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Paginator;
+use App\Entity\AbstractEntity;
+use App\Entity\Customer\Address;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+class AddressVoter extends Voter
+{
+    protected function supports(string $attribute, $subject): bool
+    {
+
+//        dd($subject);
+
+        $supportsAttribute = in_array($attribute, [
+                Address::PERMISSION_ . AbstractEntity::PERMISSION_CREATE,
+                Address::PERMISSION_ . AbstractEntity::PERMISSION_READ,
+                Address::PERMISSION_ . AbstractEntity::PERMISSION_UPDATE,
+                Address::PERMISSION_ . AbstractEntity::PERMISSION_DELETE,
+                Address::PERMISSION_ . AbstractEntity::PERMISSION_COLLECTION_ . AbstractEntity::PERMISSION_READ,
+            ]
+        );
+//        dd($subject);
+        $supportsSubject = $subject instanceof Address;
+        $supportsPaginator = $subject instanceof Paginator;
+
+        return $supportsAttribute && ($supportsSubject || $supportsPaginator);
+    }
+
+    protected function voteOnAttribute(string $attribute, $subject, TokenInterface $token): bool
+    {
+        /** @var Address $subject */
+        $user = $token->getUser();
+
+        // if the user is anonymous, do not grant access
+        if (!$user instanceof UserInterface) {
+            return false;
+        }
+
+        if($subject instanceof Paginator) {
+            return true;
+        }
+
+//        dd($attribute);
+
+        $role = get_class($subject) . '_' . $subject->getId() . '_' . str_replace(Address::PERMISSION_, null, $attribute);
+        dump($token->getRoleNames());
+        dd($role);
+        if(in_array($role, $token->getRoleNames()))
+        {
+            return true;
+        }
+
+        return false;
+    }
+}

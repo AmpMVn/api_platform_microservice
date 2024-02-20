@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello SyncController!{% endblock %}
+
+{% block body %}
+    <div style="text-align: center;">
+        <h2>Command Output</h2>
+        <div style="margin: auto; width: 1000px; border: 2px solid grey; text-align: left; padding: 10px;">
+            {{ result|nl2br }}
+        </div>
+    </div>
+{% endblock %}

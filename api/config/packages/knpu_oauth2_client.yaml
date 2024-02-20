@@ -1,0 +1,22 @@
+knpu_oauth2_client:
+    clients:
+        # the key "facebook_main" can be anything, it
+        # will create a service: "knpu.oauth2.client.facebook_main"
+        rentsoft_ms_user_keycloak_api_gateway:
+            type: keycloak
+            client_id: '%env(OAUTH_KEYCLOAK_CLIENT_ID)%'
+            client_secret: '%env(OAUTH_KEYCLOAK_CLIENT_SECRET)%'
+            redirect_route: oauth_check
+            redirect_params: { }
+            auth_server_url: '%env(OAUTH_KEYCLOAK_AUTH_SERVER_URL)%'
+            realm: rs-platform
+            use_state: false
+        rentsoft_ms_user_keycloak_admin_cli:
+            type: keycloak
+            client_id: '%env(OAUTH_KEYCLOAK_CLIENT_ID_ADMIN_CLI)%'
+            client_secret: '%env(OAUTH_KEYCLOAK_CLIENT_SECRET_ADMIN_CLI)%'
+            redirect_route: oauth_check
+            redirect_params: { }
+            auth_server_url: '%env(OAUTH_KEYCLOAK_AUTH_SERVER_URL)%'
+            realm: rs-platform
+            use_state: false

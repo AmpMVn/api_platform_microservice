@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Security\Voter\Client;
+
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Paginator;
+use App\Entity\AbstractEntity;
+use App\Entity\Client\Client;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+class ClientVoter extends Voter
+{
+    protected function supports(string $attribute, $subject): bool
+    {
+        $supportsAttribute = in_array($attribute, [
+                Client::PERMISSION_ . AbstractEntity::PERMISSION_CREATE,
+                Client::PERMISSION_ . AbstractEntity::PERMISSION_READ,
+                Client::PERMISSION_ . AbstractEntity::PERMISSION_UPDATE,
+                Client::PERMISSION_ . AbstractEntity::PERMISSION_DELETE,
+                Client::PERMISSION_ . AbstractEntity::PERMISSION_COLLECTION_ . AbstractEntity::PERMISSION_READ,
+            ]
+        );
+//        dd($attribute);
+        $supportsSubject = $subject instanceof Client;
+        $supportsPaginator = $subject instanceof Paginator;
+
+        return $supportsAttribute && ($supportsSubject || $supportsPaginator);
+    }
+
+    protected function voteOnAttribute(string $attribute, $subject, TokenInterface $token): bool
+    {
+        /** @var Client $subject */
+        $user = $token->getUser();
+
+        // if the user is anonymous, do not grant access
+        if (!$user instanceof UserInterface) {
+            return false;
+        }
+
+        if($subject instanceof Paginator) {
+            return true;
+        }
+
+        if($attribute == Client::PERMISSION_ . AbstractEntity::PERMISSION_CREATE) {
+            $role = get_class($subject) .  '__' . str_replace(Client::PERMISSION_, null, $attribute);
+        } else {
+            $role = get_class($subject) . '_' . $subject->getId() . '_' . str_replace(Client::PERMISSION_, null, $attribute);
+        }
+
+        if(in_array($role, $token->getRoleNames()))
+        {
+            return true;
+        }
+
+        return false;
+    }
+}

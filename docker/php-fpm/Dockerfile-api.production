@@ -1,0 +1,66 @@
+FROM php:8.0-fpm
+
+COPY ./docker/php-fpm/wait-for-it.sh /usr/bin/wait-for-it
+
+RUN chmod +x /usr/bin/wait-for-it
+
+RUN set -x
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libssl-dev zlib1g-dev curl git unzip netcat libxml2-dev libpq-dev libzip-dev libfcgi-bin wget vim cron && \
+    pecl install apcu && \
+    docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql && \
+    docker-php-ext-install -j$(nproc) zip opcache intl pdo_pgsql pgsql mysqli && \
+    docker-php-ext-enable apcu pdo_pgsql mysqli sodium && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+ENV memory_limit=512M
+RUN echo "memory_limit = ${memory_limit}" >> /usr/local/etc/php/conf.d/docker-php-ram-limit.ini
+
+#RUN echo "opcache.preload = /var/www/config/preload.php" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
+RUN echo "opcache.preload_user = www-data" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
+RUN echo "opcache.memory_consumption = 256" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
+RUN echo "opcache.max_accelerated_files = 20000" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
+RUN echo "opcache.validate_timestamps = 0" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
+
+RUN wget -O /usr/local/bin/php-fpm-healthcheck \
+	https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/master/php-fpm-healthcheck \
+	&& chmod +x /usr/local/bin/php-fpm-healthcheck
+
+RUN curl -sS https://getcomposer.org/installer | \
+    php -- --install-dir=/usr/bin/ --filename=composer
+
+WORKDIR ~
+
+RUN curl -sS https://get.symfony.com/cli/installer | bash
+RUN mv /root/.symfony5/bin/symfony /usr/local/bin/symfony
+
+WORKDIR /var/www
+RUN rm -rf /var/www/html
+
+WORKDIR /var/www/article
+
+COPY ./api /var/www/article
+
+WORKDIR /var/www/article/var/cache/stage
+WORKDIR /var/www/article/var/cache/test
+WORKDIR /var/www/article
+
+RUN composer install --no-interaction --no-progress
+
+RUN chown -R www-data:www-data ./
+
+RUN echo "0 */12 * * * root php /var/www/html/article/bin/console do:sync:every:12:hours >> /var/log/cron.log 2>&1" >> /etc/crontab
+RUN echo "0 2 * * * root php /var/www/html/article/bin/console do:sync:every:24:hours >> /var/log/cron.log 2>&1" >> /etc/crontab
+RUN echo "*/15 * * * * root php /var/www/html/article/bin/console do:sync:every:15:minutes >> /var/log/cron.log 2>&1" >> /etc/crontab
+
+RUN touch /var/log/cron.log
+
+RUN set -xe && echo "pm.status_path = /status" >> /usr/local/etc/php-fpm.d/zz-docker.conf
+
+ENTRYPOINT ["docker-php-entrypoint"]
+
+EXPOSE 9000
+
+CMD ["php-fpm"]

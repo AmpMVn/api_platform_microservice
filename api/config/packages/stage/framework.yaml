@@ -1,0 +1,6 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    http_client:
+        scoped_clients:
+            apiGateway.client:
+                base_uri: 'https://api.stage.rentsoft.de'

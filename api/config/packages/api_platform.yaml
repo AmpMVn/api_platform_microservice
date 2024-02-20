@@ -1,0 +1,36 @@
+api_platform:
+    title: "Rentsoft Article Microservice"
+    version: '1.0.00'
+    show_webby: false
+    path_segment_name_generator: api_platform.path_segment_name_generator.dash
+    eager_loading:
+        max_joins: 999
+    mapping:
+        paths: ['%kernel.project_dir%/src/Entity']
+    patch_formats:
+        json: ['application/merge-patch+json']
+    swagger:
+        versions: [3]
+    enable_docs: true
+    defaults:
+        pagination_client_enabled: true
+        pagination_client_items_per_page: true
+        pagination_enabled: true
+        pagination_items_per_page: 50000
+    collection:
+        pagination:
+            items_per_page: 300
+    oauth:
+        enabled: true
+        clientId: '%env(OAUTH_KEYCLOAK_CLIENT_ID)%'
+        clientSecret: '%env(OAUTH_KEYCLOAK_CLIENT_SECRET)%'
+        type: 'oauth2'
+        flow: 'implicit'
+        tokenUrl: '%env(OAUTH_KEYCLOAK_AUTH_SERVER_URL)%/realms/rs-platform/protocol/openid-connect/token'
+        authorizationUrl: '/oauth/login'
+        scopes: [ ]
+    openapi:
+        contact:
+            name: "Rentsoft GmbH"
+            url: "www.rentsoft.de"
+            email: "info@rentsoft.de "

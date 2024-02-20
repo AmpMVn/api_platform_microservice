@@ -1,0 +1,11 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    php_errors:
+        log: false
+
+    http_client:
+      scoped_clients:
+          rsApi.client:
+              base_uri: 'https://api.rentsoft.de'
+          apiGateway.client:
+              base_uri: 'http://rentsoft_api_gateway_krakend:8080'

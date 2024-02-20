@@ -1,0 +1,68 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    api_gateway_connector:
+        auth_server_url: '%env(OAUTH_KEYCLOAK_AUTH_SERVER_URL)%'
+        auth_server_url_intern: '%env(OAUTH_KEYCLOAK_AUTH_SERVER_URL_INTERN)%'
+        auth_server_url_intern_certs: '%env(OAUTH_KEYCLOAK_AUTH_SERVER_URL_INTERN_CERTS)%'
+        auth_server_url_intern_tokens: '%env(OAUTH_KEYCLOAK_AUTH_SERVER_URL_INTERN_TOKENS)%'
+    container.dumper.inline_factories: true
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Tests/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+    App\Doctrine\Extension\DataForCurrentUserExtension:
+        arguments: [ '@Symfony\Component\Security\Core\Security', '@stof_doctrine_extensions.listener.loggable' ]
+        tags:
+            - { name: api_platform.doctrine.orm.query_extension.collection }
+            - { name: api_platform.doctrine.orm.query_extension.item }
+
+    App\EventListener\LogoutListener:
+        arguments: [ '@Symfony\Component\Security\Core\Security' ]
+        tags:
+            -   name: 'kernel.event_listener'
+                event: 'Symfony\Component\Security\Http\Event\LogoutEvent'
+                dispatcher: security.event_dispatcher.main
+
+    App\EventListener\LoggableEventListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.request }
+        arguments:
+            $loggable: '@stof_doctrine_extensions.listener.loggable'
+
+    App\EventSubscriber\LocaleSubscriber:
+        arguments:
+            $translatable: '@stof_doctrine_extensions.listener.translatable'
+
+    Rentsoft\ApiGatewayConnectorBundle\Extension\ApiGatewayKeycloakHttpClient: ~
+    Rentsoft\ApiGatewayConnectorBundle\Extension\ApiGatewayHttpClient: ~
+
+    App\Filter\ArticlesByOnlineBookingIdFilter:
+        arguments:
+            $searchParameterName: 'ignoored'
+
+    App\Filter\FiltersSearchFilter:
+        arguments:
+            $searchParameterName: 'ignoored'
+
+    App\Filter\RentalDatesFilter:
+        arguments:
+            $rentalDates: 'ignoored'

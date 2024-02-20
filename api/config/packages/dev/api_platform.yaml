@@ -1,0 +1,3 @@
+api_platform:
+    version: '1.0.x'
+    title: "[DEV] Rentsoft Article Microservice"
